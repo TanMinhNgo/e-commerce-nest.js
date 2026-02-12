@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id           String    @id @default(uuid()) 
+  email        String    @unique @db.VarChar(255)
+  password     String    @db.VarChar(255)
+  firstName    String?   @db.VarChar(255)
+  lastName     String?   @db.VarChar(255)
+  role         Role      @default(USER)
+  refreshToken String?   @db.Text
+  createdAt    DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt    DateTime  @updatedAt @db.Timestamp(0)
+  
+  carts        Cart[]
+  orders       Order[]
+  payments     Payment[]
+
+  @@map("users")
+}
+
+model Category {
+  id          String    @id @default(uuid()) 
+  name        String    @db.VarChar(255)
+  description String?   @db.VarChar(255)
+  slug        String?   @db.VarChar(255)
+  imageUrl    String?   @db.VarChar(255)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime  @updatedAt @db.Timestamp(0)
+  
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          String      @id @default(uuid()) 
+  name        String      @db.VarChar(255)
+  description String?     @db.VarChar(255)
+  price       Decimal     @db.Decimal(10, 2)
+  stock       Int
+  sku         String?     @db.VarChar(255)
+  imageUrl    String?     @db.VarChar(255)
+  isActive    Boolean     @default(true)
+  categoryId  String        
+  createdAt   DateTime    @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime    @updatedAt @db.Timestamp(0)
+  
+  category    Category?   @relation(fields: [categoryId], references: [id])
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  @@map("products")
+}
+
+model Cart {
+  id          String     @id @default(uuid()) 
+  userId      String        
+  checkedOut  Boolean    @default(false)
+  createdAt   DateTime   @default(now()) @db.Timestamp(0)
+  updatedAt   DateTime   @updatedAt @db.Timestamp(0)
+  
+  user        User       @relation(fields: [userId], references: [id])
+  cartItems   CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id         String      @id @default(uuid()) 
+  quantity   Int
+  cartId     String      
+  productId  String      
+  createdAt  DateTime @default(now()) @db.Timestamp(0)
+  updatedAt  DateTime @updatedAt @db.Timestamp(0)
+  
+  cart       Cart     @relation(fields: [cartId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id])
+
+  @@map("cart_items")
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  orderNumber     String      @unique @db.VarChar(255)
+  status          String      @db.VarChar(255)
+  totalAmount     Decimal     @db.Decimal(10, 2)
+  userId          String         
+  cartId          String       
+  shippingAddress String?     @db.VarChar(255)
+  createdAt       DateTime    @default(now()) @db.Timestamp(0)
+  updatedAt       DateTime    @updatedAt @db.Timestamp(0)
+  
+  user            User        @relation(fields: [userId], references: [id])
+  orderItems      OrderItem[]
+  payments        Payment[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String      @id @default(uuid()) 
+  quantity   Int
+  orderId    String      
+  productId  String      
+  createdAt  DateTime @default(now()) @db.Timestamp(0)
+  updatedAt  DateTime @updatedAt @db.Timestamp(0)
+  
+  order      Order     @relation(fields: [orderId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Payment {
+  id        String      @id @default(uuid()) 
+  amount    Decimal  @db.Decimal(10, 2)
+  status    String   @db.VarChar(255)
+  method    String   @db.VarChar(255)
+  userId    String      
+  orderId   String      
+  createdAt DateTime @default(now()) @db.Timestamp(0)
+  updatedAt DateTime @updatedAt @db.Timestamp(0)
+  
+  user      User     @relation(fields: [userId], references: [id])
+  order     Order    @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
