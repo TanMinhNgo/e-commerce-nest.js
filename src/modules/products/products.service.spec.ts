@@ -1,30 +1,34 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CategoryService } from './category.service';
+import { ProductsService } from './products.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
-describe('CategoryService', () => {
-  let service: CategoryService;
+describe('ProductsService', () => {
+  let service: ProductsService;
   let prisma: PrismaService;
 
   const mockPrismaService = {
-    category: {
+    product: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      count: jest.fn(),
+    },
+    category: {
+      findUnique: jest.fn(),
     },
   };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        CategoryService,
+        ProductsService,
         { provide: PrismaService, useValue: mockPrismaService },
       ],
     }).compile();
 
-    service = module.get<CategoryService>(CategoryService);
+    service = module.get<ProductsService>(ProductsService);
     prisma = module.get<PrismaService>(PrismaService);
 
     jest.clearAllMocks();

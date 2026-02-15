@@ -6,136 +6,191 @@ datasource db {
   provider = "postgresql"
 }
 
-
 enum Role {
   USER
   ADMIN
 }
 
-model User {
-  id           String    @id @default(uuid()) 
-  email        String    @unique @db.VarChar(255)
-  password     String    @db.VarChar(255)
-  firstName    String?   @db.VarChar(255)
-  lastName     String?   @db.VarChar(255)
-  role         Role      @default(USER)
-  refreshToken String?   @db.Text
-  createdAt    DateTime  @default(now()) @db.Timestamp(0)
-  updatedAt    DateTime  @updatedAt @db.Timestamp(0)
-  
-  carts        Cart[]
-  orders       Order[]
-  payments     Payment[]
-
-  @@map("users")
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
 }
 
-model Category {
-  id          String    @id @default(uuid()) 
-  name        String    @db.VarChar(255)
-  description String?   @db.VarChar(255)
-  slug        String?   @db.VarChar(255)
-  imageUrl    String?   @db.VarChar(255)
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now()) @db.Timestamp(0)
-  updatedAt   DateTime  @updatedAt @db.Timestamp(0)
-  
-  products    Product[]
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
 
-  @@map("categories")
+model User {
+  id           String  @id @default(uuid())
+  email        String  @unique
+  password     String
+  firstName    String?
+  lastName     String?
+  role         Role    @default(USER)
+  refreshToken String?
+
+  //Relations
+  orders   Order[]
+  carts    Cart[]
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@map("users") // the name of the table
 }
 
 model Product {
-  id          String      @id @default(uuid()) 
-  name        String      @db.VarChar(255)
-  description String?     @db.VarChar(255)
-  price       Decimal     @db.Decimal(10, 2)
-  stock       Int
-  sku         String?     @db.VarChar(255)
-  imageUrl    String?     @db.VarChar(255)
-  isActive    Boolean     @default(true)
-  categoryId  String        
-  createdAt   DateTime    @default(now()) @db.Timestamp(0)
-  updatedAt   DateTime    @updatedAt @db.Timestamp(0)
-  
-  category    Category?   @relation(fields: [categoryId], references: [id])
-  cartItems   CartItem[]
-  orderItems  OrderItem[]
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  price       Decimal @db.Decimal(10, 2)
+  stock       Int     @default(0)
+  sku         String  @unique
+  imageUrl    String?
+  isActive    Boolean @default(true)
 
-  @@map("products")
+  // Relations
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  // Timestamps
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sku])
+  @@index([categoryId])
+  @@index([isActive])
+  @@map("products") // the name of the table
 }
 
-model Cart {
-  id          String     @id @default(uuid()) 
-  userId      String        
-  checkedOut  Boolean    @default(false)
-  createdAt   DateTime   @default(now()) @db.Timestamp(0)
-  updatedAt   DateTime   @updatedAt @db.Timestamp(0)
-  
-  user        User       @relation(fields: [userId], references: [id])
-  cartItems   CartItem[]
+model Category {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  slug        String  @unique
+  imageUrl    String?
+  isActive    Boolean @default(true)
 
-  @@map("carts")
-}
+  products Product[]
 
-model CartItem {
-  id         String      @id @default(uuid()) 
-  quantity   Int
-  cartId     String      
-  productId  String      
-  createdAt  DateTime @default(now()) @db.Timestamp(0)
-  updatedAt  DateTime @updatedAt @db.Timestamp(0)
-  
-  cart       Cart     @relation(fields: [cartId], references: [id])
-  product    Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("cart_items")
-}
-
-model Order {
-  id              String      @id @default(uuid())
-  orderNumber     String      @unique @db.VarChar(255)
-  status          String      @db.VarChar(255)
-  totalAmount     Decimal     @db.Decimal(10, 2)
-  userId          String         
-  cartId          String       
-  shippingAddress String?     @db.VarChar(255)
-  createdAt       DateTime    @default(now()) @db.Timestamp(0)
-  updatedAt       DateTime    @updatedAt @db.Timestamp(0)
-  
-  user            User        @relation(fields: [userId], references: [id])
-  orderItems      OrderItem[]
-  payments        Payment[]
-
-  @@map("orders")
+  @@index([slug])
+  @@index([isActive])
+  @@map("categories")
 }
 
 model OrderItem {
-  id        String      @id @default(uuid()) 
-  quantity   Int
-  orderId    String      
-  productId  String      
-  createdAt  DateTime @default(now()) @db.Timestamp(0)
-  updatedAt  DateTime @updatedAt @db.Timestamp(0)
-  
-  order      Order     @relation(fields: [orderId], references: [id])
-  product    Product  @relation(fields: [productId], references: [id])
+  id        String  @id @default(uuid())
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
 
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
   @@map("order_items")
 }
 
-model Payment {
-  id        String      @id @default(uuid()) 
-  amount    Decimal  @db.Decimal(10, 2)
-  status    String   @db.VarChar(255)
-  method    String   @db.VarChar(255)
-  userId    String      
-  orderId   String      
-  createdAt DateTime @default(now()) @db.Timestamp(0)
-  updatedAt DateTime @updatedAt @db.Timestamp(0)
-  
-  user      User     @relation(fields: [userId], references: [id])
-  order     Order    @relation(fields: [orderId], references: [id])
+model CartItem {
+  id        String  @id @default(uuid())
+  quantity  Int     @default(1)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
 
+  cartId String
+  cart   Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+  @@index([productId])
+  @@map("carts_items")
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  orderNumber String      @unique @default(cuid())
+  status      OrderStatus
+  totalAmount Decimal     @db.Decimal(10, 2)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  cartId String?
+  cart   Cart?   @relation(fields: [cartId], references: [id])
+
+  shippingAddress String?
+
+  orderItems OrderItem[]
+  payment    Payment?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([orderNumber])
+  @@index([status])
+  @@map("orders")
+}
+
+model Cart {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  orders     Order[]
+  checkedOut Boolean @default(false)
+
+  cartItems CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("carts")
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  amount        Decimal       @db.Decimal(10, 2)
+  status        PaymentStatus @default(PENDING)
+  currency      String        @default("usd")
+  paymentMethod String?
+  transactionId String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([transactionId])
   @@map("payments")
 }

@@ -59,7 +59,7 @@ export class AuthController {
   @Get('refresh')
   @UseGuards(RefreshTokenGuard)
   @HttpCode(200)
-  @ApiBearerAuth('Refresh-JWT-auth')
+  @ApiBearerAuth('jwt-refresh')
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
   @ApiResponse({
     status: 200,
@@ -76,7 +76,7 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(200)
-  @ApiBearerAuth('JWT-auth')
+  @ApiBearerAuth('jwt-auth')
   @ApiOperation({ summary: 'Logout user and invalidate refresh token' })
   @ApiResponse({ status: 200, description: 'Successfully logged out' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })

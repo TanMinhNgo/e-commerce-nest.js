@@ -114,7 +114,6 @@ export class AuthService {
         firstName: true,
         lastName: true,
         role: true,
-        password: false,
       },
     });
 
@@ -123,7 +122,6 @@ export class AuthService {
     }
 
     const tokens = await this.generateTokens(user.id, user.email);
-
     await this.updateRefreshToken(user.id, tokens.refreshToken);
 
     return {
@@ -146,10 +144,14 @@ export class AuthService {
     const payload = { sub: userId, email };
 
     const refreshId = randomBytes(16).toString('hex');
+    const refreshSecret = process.env.JWT_REFRESH_SECRET;
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, { expiresIn: '15m' }),
-      this.jwtService.signAsync({ ...payload, refreshId }, { expiresIn: '7d' }),
+      this.jwtService.signAsync(
+        { ...payload, refreshId },
+        { secret: refreshSecret, expiresIn: '7d' },
+      ),
     ]);
 
     return { accessToken, refreshToken };
@@ -159,9 +161,13 @@ export class AuthService {
     userId: string,
     refreshToken: string,
   ): Promise<void> {
+    const hashedRefreshToken = await bcrypt.hash(
+      refreshToken,
+      this.SALT_ROUNDS,
+    );
     await this.prisma.user.update({
       where: { id: userId },
-      data: { refreshToken },
+      data: { refreshToken: hashedRefreshToken },
     });
   }
 }
